@@ -102,6 +102,20 @@ class _WeatherPageState extends State<WeatherPage>
     }
   }
 
+  // Logika mendapatkan deskripsi cuaca berdasarkan suhu
+  String getWeatherDescriptionByTemp(double tempValue) {
+    int temp = tempValue.round();
+    if (temp > 30) {
+      return 'sunny';
+    } else if (temp > 24) {
+      return 'clouds';
+    } else if (temp > 18) {
+      return 'rain';
+    } else {
+      return 'windy';
+    }
+  }
+
   // Logika memilih maskot Ody
   String getOdyAsset(String? condition) {
     if (condition == null) return 'assets/ody.png';
@@ -518,8 +532,14 @@ class _WeatherPageState extends State<WeatherPage>
                                         milliseconds: 300,
                                       ),
                                       child: Text(
-                                        _displayCondition.toUpperCase(),
-                                        key: ValueKey(_displayCondition),
+                                        getWeatherDescriptionByTemp(
+                                          _displayTemperature,
+                                        ).toUpperCase(),
+                                        key: ValueKey(
+                                          getWeatherDescriptionByTemp(
+                                            _displayTemperature,
+                                          ),
+                                        ),
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
@@ -588,7 +608,9 @@ class _WeatherPageState extends State<WeatherPage>
                               ),
                               InfoCard(
                                 label: "Sky",
-                                value: _weather!.condition,
+                                value: getWeatherDescriptionByTemp(
+                                  _displayTemperature,
+                                ),
                                 icon: Icons.wb_cloudy_outlined,
                               ),
                             ],
