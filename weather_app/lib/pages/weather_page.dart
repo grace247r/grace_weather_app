@@ -272,15 +272,23 @@ class _WeatherPageState extends State<WeatherPage>
             _weather == null
                 ? const Center(child: CircularProgressIndicator())
                 : SafeArea(
-                    child: Column(
+                    child: ListView(
                       children: [
                         // Header dengan Ody mascot besar di kanan
                         Padding(
                           padding: EdgeInsets.fromLTRB(
-                            MediaQuery.of(context).size.width > 600 ? 24 : 20,
+                            MediaQuery.of(context).size.width > 600
+                                ? 24
+                                : MediaQuery.of(context).size.width > 400
+                                ? 20
+                                : 12,
                             12,
-                            MediaQuery.of(context).size.width > 600 ? 24 : 20,
-                            24,
+                            MediaQuery.of(context).size.width > 600
+                                ? 24
+                                : MediaQuery.of(context).size.width > 400
+                                ? 20
+                                : 12,
+                            MediaQuery.of(context).size.width > 400 ? 24 : 16,
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -346,7 +354,9 @@ class _WeatherPageState extends State<WeatherPage>
                           padding: EdgeInsets.symmetric(
                             horizontal: MediaQuery.of(context).size.width > 600
                                 ? 24
-                                : 20,
+                                : MediaQuery.of(context).size.width > 400
+                                ? 20
+                                : 12,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,12 +480,16 @@ class _WeatherPageState extends State<WeatherPage>
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(
+                          height: MediaQuery.of(context).size.width > 400
+                              ? 16
+                              : 8,
+                        ),
                         // Ody image with floating alert bubble
-                        Expanded(
-                          flex: MediaQuery.of(context).size.height > 700
-                              ? 3
-                              : 2,
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height > 700
+                              ? 300
+                              : 200,
                           child: Center(
                             child: Stack(
                               alignment: Alignment.center,
@@ -509,14 +523,40 @@ class _WeatherPageState extends State<WeatherPage>
                                               (MediaQuery.of(
                                                         context,
                                                       ).size.width *
-                                                      0.40)
-                                                  .clamp(240, 400),
+                                                      (MediaQuery.of(
+                                                                context,
+                                                              ).size.width >
+                                                              400
+                                                          ? 0.50
+                                                          : 0.40))
+                                                  .clamp(
+                                                    MediaQuery.of(
+                                                              context,
+                                                            ).size.width >
+                                                            400
+                                                        ? 200
+                                                        : 150,
+                                                    400,
+                                                  ),
                                           maxHeight:
                                               (MediaQuery.of(
                                                         context,
                                                       ).size.width *
-                                                      0.40)
-                                                  .clamp(240, 400),
+                                                      (MediaQuery.of(
+                                                                context,
+                                                              ).size.width >
+                                                              400
+                                                          ? 0.50
+                                                          : 0.40))
+                                                  .clamp(
+                                                    MediaQuery.of(
+                                                              context,
+                                                            ).size.width >
+                                                            400
+                                                        ? 200
+                                                        : 150,
+                                                    400,
+                                                  ),
                                         ),
                                         child: buildOdyImage(
                                           getOdyAssetByTemp(
@@ -555,14 +595,14 @@ class _WeatherPageState extends State<WeatherPage>
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                         // 24-hour time slider
                         SizedBox(
                           height: MediaQuery.of(context).size.width > 600
                               ? 80
                               : MediaQuery.of(context).size.width > 400
-                              ? 70
-                              : 60,
+                              ? 60
+                              : 55,
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             padding: EdgeInsets.symmetric(
@@ -583,7 +623,11 @@ class _WeatherPageState extends State<WeatherPage>
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(
+                          height: MediaQuery.of(context).size.width > 400
+                              ? 16
+                              : 8,
+                        ),
                         Padding(
                           padding: EdgeInsets.symmetric(
                             horizontal: MediaQuery.of(context).size.width > 600
