@@ -16,26 +16,39 @@ class InfoCard extends StatelessWidget {
     return Column(
       children: [
         Container(
-          padding: EdgeInsets.all(15),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Colors.blue.shade50,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
+                color: Colors.blue.withOpacity(0.1),
+                blurRadius: 16,
                 spreadRadius: 2,
               ),
             ],
           ),
-          child: Icon(icon, color: Color(0xFF88C0D0)),
+          child: Icon(icon, color: Colors.blue.shade400, size: 28),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 10),
         Text(
           value,
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+            color: Color(0xFF1a1a2e),
+          ),
         ),
-        Text(label, style: TextStyle(color: Colors.grey, fontSize: 10)),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.grey.shade600,
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.3,
+          ),
+        ),
       ],
     );
   }
