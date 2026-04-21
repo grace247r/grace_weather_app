@@ -14,6 +14,7 @@ class _WeatherPageState extends State<WeatherPage>
   WeatherModel? _weather;
   AnimationController? _floatingController;
   int _selectedTimeIndex = 2; // Default: 7:00 (index 2)
+  int _selectedForecastDay = 0; // Default: TODAY (index 0)
 
   // Hourly forecast data
   late List<Map<String, dynamic>> _hourlyForecast;
@@ -23,14 +24,16 @@ class _WeatherPageState extends State<WeatherPage>
   // 3-day forecast
   late List<Map<String, dynamic>> _threeDayForecast;
 
-  // Alerts/tips from Ody
-  late List<String> _odyAlerts;
-
   // Fungsi ambil data
   _fetchWeather() async {
     try {
       final weather = await _weatherService.getWeather("Jakarta");
       if (!mounted) return;
+
+      // Get current hour
+      final now = DateTime.now();
+      final currentHour = now.hour;
+
       setState(() {
         _weather = weather;
         // Initialize 24-hour forecast data
@@ -39,14 +42,16 @@ class _WeatherPageState extends State<WeatherPage>
           return {
             'time': '${index.toString().padLeft(2, '0')}:00',
             'temp': (weather.temperature + tempVariation).round(),
-            'condition': index > 8 && index < 16 ? weather.condition : 'clouds',
+            'condition': weather.condition,
           };
         });
 
-        _displayTemperature = _hourlyForecast[12]['temp'].toDouble();
-        _displayCondition = _hourlyForecast[12]['condition'];
+        // Set display to current hour
+        _selectedTimeIndex = currentHour;
+        _displayTemperature = _hourlyForecast[currentHour]['temp'].toDouble();
+        _displayCondition = _hourlyForecast[currentHour]['condition'];
 
-        // 3-day forecast
+        // 3-day forecast dengan logic berdasarkan suhu
         _threeDayForecast = [
           {
             'day': 'TODAY',
@@ -56,41 +61,45 @@ class _WeatherPageState extends State<WeatherPage>
           {
             'day': 'MON',
             'temp': (weather.temperature - 1).round(),
-            'condition': 'clouds',
+            'condition': _getConditionByTemp((weather.temperature - 1).round()),
           },
           {
             'day': 'TUE',
             'temp': (weather.temperature - 2).round(),
-            'condition': 'rain',
+            'condition': _getConditionByTemp((weather.temperature - 2).round()),
           },
         ];
-
-        // Ody alerts based on weather
-        _odyAlerts = _getOdyAlerts(weather.condition);
       });
     } catch (e) {
       print(e);
     }
   }
 
-  // Fungsi untuk mendapatkan alert dari Ody
-  List<String> _getOdyAlerts(String condition) {
-    final alerts = <String>[];
-    final lowerCondition = condition.toLowerCase();
-
-    if (lowerCondition.contains('rain') || lowerCondition.contains('drizzle')) {
-      alerts.add('Bawa payung yaa! 🌧️');
-      alerts.add('Jalan hati-hati klo basah');
-    } else if (lowerCondition.contains('clear') ||
-        lowerCondition.contains('sunny')) {
-      alerts.add('Pake sunscreen! ☀️');
-      alerts.add('Jangan lupa minum air');
-    } else if (lowerCondition.contains('cloud')) {
-      alerts.add('Cuaca sedang mendung nih');
-      alerts.add('Tetap semangat! 💪');
+  // Logic menentukan kondisi cuaca berdasarkan suhu
+  String _getConditionByTemp(int temp) {
+    if (temp > 30) {
+      return 'clear'; // Cuaca panas > 30°C
+    } else if (temp > 24) {
+      return 'clouds'; // Cuaca hangat 24-30°C
+    } else if (temp > 18) {
+      return 'rain'; // Cuaca sejuk 18-24°C
+    } else {
+      return 'mist'; // Cuaca dingin < 18°C
     }
+  }
 
-    return alerts.isEmpty ? ['Cuaca hari ini cukup baik!'] : alerts;
+  // Logika memilih Ody berdasarkan suhu secara realtime
+  String getOdyAssetByTemp(double tempValue) {
+    int temp = tempValue.round();
+    if (temp > 30) {
+      return 'assets/sunny ody.png'; // Panas > 30°C
+    } else if (temp > 24) {
+      return 'assets/cloudy ody.png'; // Hangat 24-30°C
+    } else if (temp > 18) {
+      return 'assets/rainy ody.png'; // Sejuk 18-24°C
+    } else {
+      return 'assets/windy ody.png'; // Dingin < 18°C
+    }
   }
 
   // Logika memilih maskot Ody
@@ -163,8 +172,6 @@ class _WeatherPageState extends State<WeatherPage>
           _selectedTimeIndex = index;
           _displayTemperature = _hourlyForecast[index]['temp'].toDouble();
           _displayCondition = _hourlyForecast[index]['condition'];
-          // Update alerts based on new condition
-          _odyAlerts = _getOdyAlerts(_displayCondition);
         });
       },
       child: AnimatedContainer(
@@ -255,7 +262,12 @@ class _WeatherPageState extends State<WeatherPage>
                       children: [
                         // Header dengan Ody mascot besar di kanan
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                          padding: EdgeInsets.fromLTRB(
+                            MediaQuery.of(context).size.width > 600 ? 24 : 20,
+                            12,
+                            MediaQuery.of(context).size.width > 600 ? 24 : 20,
+                            24,
+                          ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -287,13 +299,27 @@ class _WeatherPageState extends State<WeatherPage>
                               // Ody mascot besar tanpa background
                               Image.asset(
                                 'assets/ody.png',
-                                width: 100,
-                                height: 100,
+                                width: MediaQuery.of(context).size.width > 600
+                                    ? 130
+                                    : MediaQuery.of(context).size.width > 400
+                                    ? 120
+                                    : 100,
+                                height: MediaQuery.of(context).size.width > 600
+                                    ? 130
+                                    : MediaQuery.of(context).size.width > 400
+                                    ? 120
+                                    : 100,
                                 fit: BoxFit.contain,
                                 errorBuilder: (context, error, stackTrace) {
                                   return Icon(
                                     Icons.emoji_nature_outlined,
-                                    size: 100,
+                                    size:
+                                        MediaQuery.of(context).size.width > 600
+                                        ? 130
+                                        : MediaQuery.of(context).size.width >
+                                              400
+                                        ? 120
+                                        : 100,
                                     color: Colors.blue.shade400,
                                   );
                                 },
@@ -303,7 +329,11 @@ class _WeatherPageState extends State<WeatherPage>
                         ),
                         // Location & Temperature & 3-Day Forecast
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: MediaQuery.of(context).size.width > 600
+                                ? 24
+                                : 20,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -311,7 +341,9 @@ class _WeatherPageState extends State<WeatherPage>
                                 _weather!.cityName.toUpperCase(),
                                 style: TextStyle(
                                   fontSize:
-                                      MediaQuery.of(context).size.width > 400
+                                      MediaQuery.of(context).size.width > 600
+                                      ? 36
+                                      : MediaQuery.of(context).size.width > 400
                                       ? 32
                                       : 24,
                                   letterSpacing: 1.5,
@@ -329,7 +361,10 @@ class _WeatherPageState extends State<WeatherPage>
                                   key: ValueKey(_displayTemperature),
                                   style: TextStyle(
                                     fontSize:
-                                        MediaQuery.of(context).size.width > 400
+                                        MediaQuery.of(context).size.width > 600
+                                        ? 120
+                                        : MediaQuery.of(context).size.width >
+                                              400
                                         ? 96
                                         : 72,
                                     height: 0.85,
@@ -344,45 +379,74 @@ class _WeatherPageState extends State<WeatherPage>
                               SingleChildScrollView(
                                 scrollDirection: Axis.horizontal,
                                 child: Row(
-                                  children: _threeDayForecast.map((day) {
+                                  children: _threeDayForecast.asMap().entries.map((
+                                    entry,
+                                  ) {
+                                    int index = entry.key;
+                                    Map day = entry.value;
+                                    bool isSelected =
+                                        _selectedForecastDay == index;
                                     return Padding(
                                       padding: const EdgeInsets.only(right: 12),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.4),
-                                          borderRadius: BorderRadius.circular(
-                                            10,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _selectedForecastDay = index;
+                                            _displayTemperature =
+                                                (day['temp'] as int).toDouble();
+                                            _displayCondition =
+                                                day['condition'];
+                                            _selectedTimeIndex =
+                                                -1; // Reset time selection
+                                          });
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 8,
                                           ),
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              day['day'] ?? 'DAY',
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w700,
-                                                letterSpacing: 0.8,
-                                                color: Colors.grey.shade600,
-                                                fontFamily: 'Roboto',
-                                              ),
+                                          decoration: BoxDecoration(
+                                            color: isSelected
+                                                ? Colors.white.withOpacity(0.7)
+                                                : Colors.white.withOpacity(0.4),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
                                             ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              "${day['temp'] ?? 0}° • ${(day['condition'] ?? 'clouds').toUpperCase()}",
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.grey.shade700,
-                                                fontFamily: 'Roboto',
-                                              ),
+                                            border: Border.all(
+                                              color: isSelected
+                                                  ? Colors.blue.shade400
+                                                  : Colors.white.withOpacity(
+                                                      0.6,
+                                                    ),
+                                              width: isSelected ? 2 : 1,
                                             ),
-                                          ],
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                day['day'] ?? 'DAY',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w700,
+                                                  letterSpacing: 0.8,
+                                                  color: Colors.grey.shade600,
+                                                  fontFamily: 'Roboto',
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                "${day['temp'] ?? 0}° • ${(day['condition'] ?? 'clouds').toUpperCase()}",
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.grey.shade700,
+                                                  fontFamily: 'Roboto',
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     );
@@ -395,7 +459,9 @@ class _WeatherPageState extends State<WeatherPage>
                         const SizedBox(height: 16),
                         // Ody image with floating alert bubble
                         Expanded(
-                          flex: 2,
+                          flex: MediaQuery.of(context).size.height > 700
+                              ? 3
+                              : 2,
                           child: Center(
                             child: Stack(
                               alignment: Alignment.center,
@@ -426,22 +492,22 @@ class _WeatherPageState extends State<WeatherPage>
                                       child: ConstrainedBox(
                                         constraints: BoxConstraints(
                                           maxWidth:
-                                              MediaQuery.of(
-                                                    context,
-                                                  ).size.width >
-                                                  400
-                                              ? 300
-                                              : 240,
+                                              (MediaQuery.of(
+                                                        context,
+                                                      ).size.width *
+                                                      0.40)
+                                                  .clamp(240, 400),
                                           maxHeight:
-                                              MediaQuery.of(
-                                                    context,
-                                                  ).size.width >
-                                                  400
-                                              ? 300
-                                              : 240,
+                                              (MediaQuery.of(
+                                                        context,
+                                                      ).size.width *
+                                                      0.40)
+                                                  .clamp(240, 400),
                                         ),
                                         child: buildOdyImage(
-                                          getOdyAsset(_displayCondition),
+                                          getOdyAssetByTemp(
+                                            _displayTemperature,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -465,57 +531,6 @@ class _WeatherPageState extends State<WeatherPage>
                                     ),
                                   ],
                                 ),
-                                // Floating bubble di sebelah Ody
-                                Positioned(
-                                  right: MediaQuery.of(context).size.width > 400
-                                      ? 20
-                                      : 10,
-                                  top:
-                                      MediaQuery.of(context).size.height * 0.15,
-                                  child: SingleChildScrollView(
-                                    child: SizedBox(
-                                      width:
-                                          MediaQuery.of(context).size.width *
-                                          0.35,
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: _odyAlerts.map((alert) {
-                                          return Padding(
-                                            padding: const EdgeInsets.only(
-                                              bottom: 6,
-                                            ),
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 10,
-                                                    vertical: 8,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.blue.shade100,
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                                border: Border.all(
-                                                  color: Colors.blue.shade300,
-                                                  width: 1.5,
-                                                ),
-                                              ),
-                                              child: Text(
-                                                alert,
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.blue.shade800,
-                                                  fontFamily: 'Roboto',
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ),
-                                  ),
-                                ),
                               ],
                             ),
                           ),
@@ -523,14 +538,18 @@ class _WeatherPageState extends State<WeatherPage>
                         const SizedBox(height: 12),
                         // 24-hour time slider
                         SizedBox(
-                          height: MediaQuery.of(context).size.width > 400
+                          height: MediaQuery.of(context).size.width > 600
+                              ? 80
+                              : MediaQuery.of(context).size.width > 400
                               ? 70
                               : 60,
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             padding: EdgeInsets.symmetric(
                               horizontal:
-                                  MediaQuery.of(context).size.width > 400
+                                  MediaQuery.of(context).size.width > 600
+                                  ? 24
+                                  : MediaQuery.of(context).size.width > 400
                                   ? 20
                                   : 12,
                             ),
@@ -547,10 +566,12 @@ class _WeatherPageState extends State<WeatherPage>
                         const SizedBox(height: 16),
                         Padding(
                           padding: EdgeInsets.symmetric(
-                            horizontal: MediaQuery.of(context).size.width > 400
+                            horizontal: MediaQuery.of(context).size.width > 600
+                                ? 24
+                                : MediaQuery.of(context).size.width > 400
                                 ? 20
                                 : 12,
-                            vertical: 12,
+                            vertical: 8,
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -573,7 +594,39 @@ class _WeatherPageState extends State<WeatherPage>
                             ],
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
+                        // Additional weather info
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: MediaQuery.of(context).size.width > 600
+                                ? 24
+                                : MediaQuery.of(context).size.width > 400
+                                ? 20
+                                : 12,
+                            vertical: 8,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              InfoCard(
+                                label: "Feels Like",
+                                value: "${_weather!.feelsLike.round()}°",
+                                icon: Icons.thermostat_outlined,
+                              ),
+                              InfoCard(
+                                label: "Pressure",
+                                value: "${_weather!.pressure} hPa",
+                                icon: Icons.speed,
+                              ),
+                              InfoCard(
+                                label: "Visibility",
+                                value: "${_weather!.visibility} km",
+                                icon: Icons.visibility_outlined,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
                       ],
                     ),
                   ),
